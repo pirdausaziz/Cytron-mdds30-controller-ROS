@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+"""Simple example showing how to get gamepad events."""
+
+from __future__ import print_function
+from inputs import get_gamepad
+import rospy
+from geometry_msgs.msg import Twist
+from std_msgs.msg import String
+import sys, select, os
+import RPi.GPIO as GPIO         # using Rpi.GPIO module
+from time import sleep          # import function sleep for delay
+
+GPIO.setmode(GPIO.BCM)          # GPIO numbering
+GPIO.setwarnings(False)         # enable warning from GPIO
+AN2 = 13                # set pwm2 pin on MD10-Hat
+AN1 = 12                # set pwm1 pin on MD10-hat
+DIG2 = 24               # set dir2 pin on MD10-Hat
+DIG1 = 26               # set dir1 pin on MD10-Hat
+GPIO.setup(AN2, GPIO.OUT)       # set pin as output
+GPIO.setup(AN1, GPIO.OUT)       # set pin as output
+GPIO.setup(DIG2, GPIO.OUT)      # set pin as output
+GPIO.setup(DIG1, GPIO.OUT)      # set pin as output
+sleep(1)                # delay for 1 seconds
+p1 = GPIO.PWM(AN1, 100)         # set pwm for M1
+p2 = GPIO.PWM(AN2, 100)         # set pwm for M2
+
+msg = """
+Control Your Robot by Joystick (top/bottom light)
+---------------------------
+Moving around:
+        Y
+   X        B
+        A
+
+Other key/any main key : force stop
+
+CTRL-C to quit
+"""
+
+e = """
+Communications Failed
+"""
+
+def turn_left():
+    GPIO.output(DIG1, GPIO.HIGH)     # set DIG1 as HIGH, M1B will turn ON
+    GPIO.output(DIG2, GPIO.LOW)      # set DIG2 as HIGH, M2B will turn ON
+    p1.start(100)            # set speed for M1 at 100%
+    p2.start(100)            # set speed for M2 at 100%
+
+def turn_right():
+    GPIO.output(DIG1, GPIO.LOW)
+    GPIO.output(DIG2, GPIO.HIGH)
+    p1.start(100)
+    p2.start(100)
+
+def forward():
+    GPIO.output(DIG1, GPIO.LOW)          # set DIG1 as LOW, to control direction
+    GPIO.output(DIG2, GPIO.LOW)          # set DIG2 as LOW, to control direction
+    p1.start(100)                        # set speed for M1 at 100%
+    p2.start(100)                        # set speed for M2 at 100%
+
+def backward():
+    GPIO.output(DIG1, GPIO.HIGH)         # set DIG1 as HIGH, to control direction
+    GPIO.output(DIG2, GPIO.HIGH)         # set DIG2 as HIGH, to control direction
+    p1.start(100)                        # set speed for M1 at 100%
+    p2.start(100)                        # set speed for M2 at 100%
+
+def stop():
+    GPIO.output(DIG1, GPIO.LOW)          # Direction can ignore
+    GPIO.output(DIG2, GPIO.LOW)          # Direction can ignore
+    p1.start(0)                          # set speed for M1 at 0%
+    p2.start(0)                          # set speed for M2 at 0%
+def vels(target_linear_vel, target_angular_vel):
+    return "currently:\tlinear vel %s\t angular vel %s " % (target_linear_vel,target_angular_vel)
+
+def makeSimpleProfile(output, input, slop):
+    if input > output:
+        output = min( input, output + slop )
+    elif input < output:
+        output = max( input, output - slop )
+    else:
+        output = input
+
+    return output
+
+def constrain(input, low, high):
+    if input < low:
+      input = low
+    elif input > high:
+      input = high
+    else:
+      input = input
+
+    return input
+
+def checkLinearLimitVelocity(vel):
+    
+    vel = constrain(vel, -ROBOT_MAX_LIN_VEL, ROBOT_MAX_LIN_VEL)
+
+    return vel
+
+def checkAngularLimitVelocity(vel):
+
+    vel = constrain(vel, -ROBOT_MAX_ANG_VEL, ROBOT_MAX_ANG_VEL)
+
+if __name__=="__main__":
+
+    rospy.init_node('teleop_motor')
+    pub = rospy.Publisher('motor_controller', String, queue_size=10)
+
+    status = 0
+
+    try:
+        print(msg)
+        while not rospy.is_shutdown():
+            events = get_gamepad()
+            for key in events:
+                if key.code == 'BTN_WEST':
+                    pub.publish("FORWARD\n")
+                    print("FORWARD")
+                    forward()
+                    #target_linear_vel = checkLinearLimitVelocity(target_linear_vel + LIN_VEL_STEP_SIZE)
+                    #status = status + 1
+                    #print(vels(target_linear_vel,target_angular_vel))
+                elif key.code == 'BTN_SOUTH':
+                    pub.publish("BACKWARD\n")
+                    print("BACKWARD")
+                    backward()
+                    #target_linear_vel = checkLinearLimitVelocity(target_linear_vel - LIN_VEL_STEP_SIZE)
+                    #status = status + 1
+                    #print(vels(target_linear_vel,target_angular_vel))
+                elif key.code == 'BTN_NORTH':
+                    pub.publish("LEFT\n")
+                    turn_left()
+                    print("LEFT")
+                    #target_angular_vel = checkAngularLimitVelocity(target_angular_vel + ANG_VEL_STEP_SIZE)
+                    #status = status + 1
+                    #print(vels(target_linear_vel,target_angular_vel))
+                elif key.code == 'BTN_EAST':
+                    pub.publish("RIGHT\n")
+                    print("RIGHT")
+                    turn_right()
+                    #target_angular_vel = checkAngularLimitVelocity(target_angular_vel - ANG_VEL_STEP_SIZE)
+                    #status = status + 1
+                    #print(vels(target_linear_vel,target_angular_vel))
+                elif key.code not in ['BTN_WEST', 'BTN_SOUTH', 'BTN_NORTH', 'BTN_EAST', 'SYN_REPORT']:
+                    pub.publish("STOP")
+                    print("STOP")
+                    stop()
+                    #target_linear_vel   = 0.0
+                    #control_linear_vel  = 0.0
+                    #target_angular_vel  = 0.0
+                    #control_angular_vel = 0.0
+                    #print(vels(target_linear_vel, target_angular_vel))
+
+                if status == 20 :
+                    print(msg)
+                    status = 0
+
+                #twist = Twist()
+
+                #control_linear_vel = makeSimpleProfile(control_linear_vel, target_linear_vel, (LIN_VEL_STEP_SIZE/2.0))
+                #twist.linear.x = control_linear_vel; twist.linear.y = 0.0; twist.linear.z = 0.0
+
+                #control_angular_vel = makeSimpleProfile(control_angular_vel, target_angular_vel, (ANG_VEL_STEP_SIZE/2.0))
+                #twist.angular.x = 0.0; twist.angular.y = 0.0; twist.angular.z = control_angular_vel
+
+                #pub.publish(twist)
+
+    except:
+        print(e)
+
+    finally:
+        twist = Twist()
+        twist.linear.x = 0.0; twist.linear.y = 0.0; twist.linear.z = 0.0
+        twist.angular.x = 0.0; twist.angular.y = 0.0; twist.angular.z = 0.0
+        pub.publish("TERMINATED")
+        # pub.publish(twist)
+        p1.start(0)              # set speed to 0
+        p2.start(0)              # set speed to 0
