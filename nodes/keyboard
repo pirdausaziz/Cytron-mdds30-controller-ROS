@@ -51,26 +51,26 @@ Communications Failed
 def turn_left():
     GPIO.output(DIG1, GPIO.HIGH)     # set DIG1 as HIGH, M1B will turn ON
     GPIO.output(DIG2, GPIO.LOW)      # set DIG2 as HIGH, M2B will turn ON
-    p1.start(100)            # set speed for M1 at 100%
-    p2.start(100)            # set speed for M2 at 100%
+    p1.start(25)            # set speed for M1 at 100%
+    p2.start(25)            # set speed for M2 at 100%
 
 def turn_right():
     GPIO.output(DIG1, GPIO.LOW)
     GPIO.output(DIG2, GPIO.HIGH)
-    p1.start(100)
-    p2.start(100)  
+    p1.start(25)
+    p2.start(25)  
 
 def forward():
     GPIO.output(DIG1, GPIO.LOW)          # set DIG1 as LOW, to control direction
     GPIO.output(DIG2, GPIO.LOW)          # set DIG2 as LOW, to control direction
-    p1.start(100)                        # set speed for M1 at 100%
-    p2.start(100)                        # set speed for M2 at 100%
+    p1.start(25)                        # set speed for M1 at 100%
+    p2.start(25)                        # set speed for M2 at 100%
 
 def backward():
     GPIO.output(DIG1, GPIO.HIGH)         # set DIG1 as HIGH, to control direction
     GPIO.output(DIG2, GPIO.HIGH)         # set DIG2 as HIGH, to control direction
-    p1.start(100)                        # set speed for M1 at 100%
-    p2.start(100)                        # set speed for M2 at 100%
+    p1.start(25)                        # set speed for M1 at 100%
+    p2.start(25)                        # set speed for M2 at 100%
 
 def stop():
     GPIO.output(DIG1, GPIO.LOW)          # Direction can ignore
