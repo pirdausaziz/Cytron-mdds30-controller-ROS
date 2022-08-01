@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <launch>
-  <node name="controller" pkg="motor_controller" type="keyboard" output="screen"/>
+  <node name="controller" pkg="Cytron-mdds30-controller-ROS" type="keyboard" output="screen"/>
 
 </launch>
